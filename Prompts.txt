@@ -1,0 +1,886 @@
+jamesdanielmarrsritchey: Using C++, write a program which converts a string to Base64
+
+GitHub Copilot: Sure, here's a simple C++ program that uses the OpenSSL library to convert a string to Base64.
+
+```cpp
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/buffer.h>
+#include <string>
+
+std::string base64(const std::string &input) {
+    BIO *bio, *b64;
+    BUF_MEM *bufferPtr;
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new(BIO_s_mem());
+    bio = BIO_push(b64, bio);
+
+    BIO_write(bio, input.c_str(), input.length());
+    BIO_flush(bio);
+
+    BIO_get_mem_ptr(bio, &bufferPtr);
+    BIO_set_close(bio, BIO_NOCLOSE);
+    BIO_free_all(bio);
+
+    std::string output(bufferPtr->data, bufferPtr->length);
+    BUF_MEM_free(bufferPtr);
+
+    return output;
+}
+
+int main() {
+    std::string input = "Hello, World!";
+    std::string output = base64(input);
+    std::cout << "Base64: " << output << std::endl;
+
+    return 0;
+}
+```
+
+This program uses the OpenSSL library's BIO objects to perform the Base64 encoding. The `BIO_f_base64()` function creates a Base64 BIO filter, and `BIO_s_mem()` creates a memory BIO. The `BIO_push()` function then chains the two BIOs together so that writing to the resulting BIO will Base64 encode the input and store it in memory. The `BIO_write()` and `BIO_flush()` functions perform the actual encoding, and then the encoded data is retrieved from the memory BIO and returned as a string.
+
+Please note that you need to have OpenSSL installed and linked to your project to use this code.
+
+jamesdanielmarrsritchey: Don't use OpenSSL
+
+GitHub Copilot: Sure, here's a simple C++ program that converts a string to Base64 without using OpenSSL. This program uses the `boost` library.
+
+```cpp
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <string>
+
+std::string base64(const std::string &input) {
+    using namespace boost::archive::iterators;
+    using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
+    auto tmp = std::string(It(std::begin(input)), It(std::end(input)));
+    return tmp.append((3 - input.size() % 3) % 3, '=');
+}
+
+int main() {
+    std::string input = "Hello, World!";
+    std::string output = base64(input);
+    std::cout << "Base64: " << output << std::endl;
+
+    return 0;
+}
+```
+
+This program uses the `boost::archive::iterators::base64_from_binary` iterator to perform the Base64 encoding. The `transform_width` iterator is used to convert the 8-bit input characters into 6-bit values for Base64 encoding. The `append` function is used to add padding to the end of the encoded string, if necessary.
+
+Please note that you need to have the `boost` library installed and linked to your project to use this code.
+
+jamesdanielmarrsritchey: Don't use an external library?
+
+jamesdanielmarrsritchey: Using C++, write a program which converts a string to Base64, without using an external library. It should process the string 3 bytes at a time. The string should be specified using a commandline argument formatted as "--string value"
+
+GitHub Copilot: Sure, here's a simple C++ program that converts a string to Base64 without using any external libraries. This program processes the string 3 bytes at a time.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--string" && i + 1 < argc) {
+            input = argv[++i];
+        }
+    }
+    std::string output = base64_encode(input);
+    std::cout << "Base64: " << output << std::endl;
+
+    return 0;
+}
+```
+
+This program uses bitwise operations to convert the input string to Base64. The `base64_encode` function processes the input string 3 bytes at a time, converting each 3-byte group into 4 Base64 characters. The `main` function parses the command line arguments and passes the specified string to the `base64_encode` function.
+
+You can compile and run this program with a command like `g++ -o base64 base64.cpp && ./base64 --string "Hello, World!"`.
+
+jamesdanielmarrsritchey: Add a comment to the code, using a multiline comment format, which describes how to compile, and install the program on Debian.
+
+GitHub Copilot: Sure, here's the updated code with a multiline comment that describes how to compile and install the program on Debian.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --string "Your string here"
+
+Please replace "Your string here" with the string you want to convert to Base64.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--string" && i + 1 < argc) {
+            input = argv[++i];
+        }
+    }
+    std::string output = base64_encode(input);
+    std::cout << "Base64: " << output << std::endl;
+
+    return 0;
+}
+```
+
+This comment provides step-by-step instructions for compiling and installing the program on Debian. It assumes that the source code file is named `base64.cpp` and that the user has sudo privileges.
+
+jamesdanielmarrsritchey: The return should only contain the Base64 string. No other text, or extra line ending.
+
+GitHub Copilot: Sure, here's the updated code. The program now only outputs the Base64 string, with no other text or extra line ending.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --string "Your string here"
+
+Please replace "Your string here" with the string you want to convert to Base64.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--string" && i + 1 < argc) {
+            input = argv[++i];
+        }
+    }
+    std::cout << base64_encode(input);
+
+    return 0;
+}
+```
+
+In the `main` function, the `std::cout` statement now only outputs the result of the `base64_encode` function, without any additional text or a newline character.
+
+jamesdanielmarrsritchey: Instead of accepting a string using a commandline argument, accept the string from stdin, 3 bytes at a time.
+
+GitHub Copilot: Sure, here's the updated code. The program now reads the input string from stdin, 3 bytes at a time.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   echo -n "Your string here" | ./base64
+
+Please replace "Your string here" with the string you want to convert to Base64.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main() {
+    std::string input;
+    char buffer[3];
+    while (std::cin.read(buffer, sizeof(buffer))) {
+        input.append(buffer, sizeof(buffer));
+    }
+    // Handle remaining bytes
+    input.append(buffer, std::cin.gcount());
+    std::cout << base64_encode(input);
+
+    return 0;
+}
+```
+
+In the `main` function, the program now reads from stdin into a 3-byte buffer using the `std::cin.read` function. It appends the contents of the buffer to the input string until there are no more bytes to read. After the loop, it appends any remaining bytes that were read by the last call to `std::cin.read`. The input string is then passed to the `base64_encode` function, and the result is outputted.
+
+jamesdanielmarrsritchey: Does the comment about compiling, or installing need to be updated?
+
+GitHub Copilot: Yes, the comment about running the program needs to be updated since the input is now taken from stdin. Here's the updated comment:
+
+```cpp
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   echo -n "Your string here" | ./base64
+
+Please replace "Your string here" with the string you want to convert to Base64. The -n option with echo command is used to prevent adding a newline at the end of the string.
+*/
+```
+
+The change is in step 4, where the input string is now provided to the program through stdin using the `echo` command. The `-n` option is used with `echo` to prevent adding a newline at the end of the string.
+
+jamesdanielmarrsritchey: Add the updated comment to the full program code.
+
+GitHub Copilot: Sure, here's the full program code with the updated comment:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   echo -n "Your string here" | ./base64
+
+Please replace "Your string here" with the string you want to convert to Base64. The -n option with echo command is used to prevent adding a newline at the end of the string.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main() {
+    std::string input;
+    char buffer[3];
+    while (std::cin.read(buffer, sizeof(buffer))) {
+        input.append(buffer, sizeof(buffer));
+    }
+    // Handle remaining bytes
+    input.append(buffer, std::cin.gcount());
+    std::cout << base64_encode(input);
+
+    return 0;
+}
+```
+
+The comment at the top of the program provides instructions for compiling and running the program on Debian. The input string is now provided through stdin using the `echo` command, as described in step 4 of the comment.
+
+jamesdanielmarrsritchey: Instead of recieving data from stdin, read data from a file, specified using a commandline argument formatted as "--source_file value".
+
+GitHub Copilot: Sure, here's the updated code. The program now reads the input string from a file specified by the `--source_file` command-line argument.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    std::string source_file;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        }
+    }
+    std::ifstream file(source_file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open source file.\n";
+        return 1;
+    }
+    char buffer[3];
+    while (file.read(buffer, sizeof(buffer))) {
+        input.append(buffer, sizeof(buffer));
+    }
+    // Handle remaining bytes
+    input.append(buffer, file.gcount());
+    std::cout << base64_encode(input);
+
+    return 0;
+}
+```
+
+In the `main` function, the program now reads the `--source_file` command-line argument and opens the specified file. It then reads from the file into a 3-byte buffer, appending the contents of the buffer to the input string until there are no more bytes to read. After the loop, it appends any remaining bytes that were read by the last call to `file.read`. The input string is then passed to the `base64_encode` function, and the result is outputted.
+
+jamesdanielmarrsritchey: Update the comment about compiling, and installing.
+
+GitHub Copilot: Sure, here's the updated comment:
+
+```cpp
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64.
+*/
+```
+
+The change is in step 4, where the input file is now provided to the program through the `--source_file` command-line argument.
+
+jamesdanielmarrsritchey: Add this updated comment to the full program code.
+
+GitHub Copilot: Sure, here's the full program code with the updated comment:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    std::string source_file;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        }
+    }
+    std::ifstream file(source_file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open source file.\n";
+        return 1;
+    }
+    char buffer[3];
+    while (file.read(buffer, sizeof(buffer))) {
+        input.append(buffer, sizeof(buffer));
+    }
+    // Handle remaining bytes
+    input.append(buffer, file.gcount());
+    std::cout << base64_encode(input);
+
+    return 0;
+}
+```
+
+The comment at the top of the program provides instructions for compiling and running the program on Debian. The input file is now provided through the `--source_file` command-line argument, as described in step 4 of the comment.
+
+jamesdanielmarrsritchey: Instead of returning the base64 data, write it to a new file. This file will be specified using the commandline argument "--destination_file value"
+
+GitHub Copilot: Sure, here's the updated code. The program now writes the Base64-encoded string to a file specified by the `--destination_file` command-line argument.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file" --destination_file "path_to_output_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64, and "path_to_output_file" with the path where you want to save the Base64-encoded output.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const std::string &input) {
+    std::string ret;
+    int i = 0;
+    int val = 0;
+    int valb = -6;
+
+    for (auto c : input) {
+        val = (val<<8) + c;
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string input;
+    std::string source_file;
+    std::string destination_file;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        } else if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        }
+    }
+    std::ifstream file(source_file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open source file.\n";
+        return 1;
+    }
+    char buffer[3];
+    while (file.read(buffer, sizeof(buffer))) {
+        input.append(buffer, sizeof(buffer));
+    }
+    // Handle remaining bytes
+    input.append(buffer, file.gcount());
+    std::string output = base64_encode(input);
+    std::ofstream outfile(destination_file);
+    if (!outfile) {
+        std::cerr << "Could not open destination file.\n";
+        return 1;
+    }
+    outfile << output;
+
+    return 0;
+}
+```
+
+In the `main` function, the program now reads the `--destination_file` command-line argument and opens the specified file for writing. After encoding the input string to Base64, it writes the result to the output file.
+
+jamesdanielmarrsritchey: Rather than buffer each 3 bytes, completely process 3 bytes at at a time, includining writing them to the destination file.
+
+GitHub Copilot: Sure, here's the updated code. The program now processes and writes each 3-byte chunk to the output file as soon as it's read.
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file" --destination_file "path_to_output_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64, and "path_to_output_file" with the path where you want to save the Base64-encoded output.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const char* buffer, size_t size) {
+    std::string ret;
+    int val = 0;
+    int valb = -6;
+    for (size_t i = 0; i < size; ++i) {
+        val = (val<<8) + buffer[i];
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string source_file;
+    std::string destination_file;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        } else if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        }
+    }
+    std::ifstream file(source_file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open source file.\n";
+        return 1;
+    }
+    std::ofstream outfile(destination_file);
+    if (!outfile) {
+        std::cerr << "Could not open destination file.\n";
+        return 1;
+    }
+    char buffer[3];
+    while (file.read(buffer, sizeof(buffer))) {
+        std::string output = base64_encode(buffer, sizeof(buffer));
+        outfile << output;
+    }
+    // Handle remaining bytes
+    std::string output = base64_encode(buffer, file.gcount());
+    outfile << output;
+
+    return 0;
+}
+```
+
+In the `main` function, the program now opens the output file for writing before entering the read loop. Inside the loop, it immediately encodes each 3-byte chunk to Base64 and writes the result to the output file. After the loop, it encodes and writes any remaining bytes that were read by the last call to `file.read`.
+
+jamesdanielmarrsritchey: Update the comment about how to compile, and install the program.
+
+GitHub Copilot: Sure, here's the updated comment:
+
+```cpp
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file" --destination_file "path_to_output_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64, and "path_to_output_file" with the path where you want to save the Base64-encoded output. The program processes and writes each 3-byte chunk to the output file as soon as it's read.
+*/
+```
+
+The change is in the last sentence, which now explains that the program processes and writes each 3-byte chunk to the output file as soon as it's read.
+
+jamesdanielmarrsritchey: Add this comment to the full program code.
+
+GitHub Copilot: Sure, here's the full program code with the updated comment:
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+
+/*
+To compile and install the program on Debian, you can follow these steps:
+
+1. Install the g++ compiler if it's not already installed. You can do this by running the following command in your terminal:
+   sudo apt-get install g++
+
+2. Navigate to the directory containing the source code file (let's call it base64.cpp) using the cd command.
+
+3. Compile the source code file using the g++ compiler. You can do this by running the following command in your terminal:
+   g++ -o base64 base64.cpp
+
+4. Now, you can run the program using the following command:
+   ./base64 --source_file "path_to_your_file" --destination_file "path_to_output_file"
+
+Please replace "path_to_your_file" with the path to the file you want to convert to Base64, and "path_to_output_file" with the path where you want to save the Base64-encoded output. The program processes and writes each 3-byte chunk to the output file as soon as it's read.
+*/
+
+const std::string base64_chars = 
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+std::string base64_encode(const char* buffer, size_t size) {
+    std::string ret;
+    int val = 0;
+    int valb = -6;
+    for (size_t i = 0; i < size; ++i) {
+        val = (val<<8) + buffer[i];
+        valb += 8;
+        while (valb >= 0) {
+            ret.push_back(base64_chars[(val>>valb)&0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6) ret.push_back(base64_chars[((val<<8)>>(valb+8))&0x3F]);
+    while (ret.size() % 4) ret.push_back('=');
+    return ret;
+}
+
+int main(int argc, char* argv[]) {
+    std::string source_file;
+    std::string destination_file;
+    for(int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if(arg == "--source_file" && i + 1 < argc) {
+            source_file = argv[++i];
+        } else if(arg == "--destination_file" && i + 1 < argc) {
+            destination_file = argv[++i];
+        }
+    }
+    std::ifstream file(source_file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Could not open source file.\n";
+        return 1;
+    }
+    std::ofstream outfile(destination_file);
+    if (!outfile) {
+        std::cerr << "Could not open destination file.\n";
+        return
+
+ 
+
+1;
+    }
+    char buffer[3];
+    while (file.read(buffer, sizeof(buffer))) {
+        std::string output = base64_encode(buffer, sizeof(buffer));
+        outfile << output;
+    }
+    // Handle remaining bytes
+    std::string output = base64_encode(buffer, file.gcount());
+    outfile << output;
+
+    return 0;
+}
+```
+
+The comment at the top of the program provides instructions for compiling and running the program on Debian. The input file and output file are now provided through the `--source_file` and `--destination_file` command-line arguments, respectively, as described in step 4 of the comment. The program processes and writes each 3-byte chunk to the output file as soon as it's read.
